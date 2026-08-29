@@ -809,7 +809,7 @@ const COLLECTIONS = {
     title:['Coming','Soon'],
     sub:'Coming Soon',
     body:'Coming soon.',
-    rows:[['Supply','Coming Soon'],['Mint','Coming Soon'],['Standard','Coming Soon'],['Chain','Coming Soon']],
+    rows:[['Supply','4,040'],['Mint','Coming Soon'],['Standard','ERC-404'],['Chain','Robinhood Chain']],
     acts:[]
   }
 };
@@ -1264,6 +1264,7 @@ const SFX = (()=>{
    ============================================================ */
 const AMBIENT = (()=>{
   let ctx=null, master=null, nodes=[], running=false, artTimer=null, bellFn=null;
+  let dripTimer=null, dripFn=null;
   let level = 0.11;
 
   function build(){
@@ -1395,6 +1396,66 @@ const AMBIENT = (()=>{
         o.onended = ()=>{ try{ g.disconnect(); o.disconnect(); }catch(e){} };
       });
     };
+
+    /* ===== water drop =====
+       Modelled off the Conker's Bad Fur Day cave drip, measured from the source:
+         - pitch sits flat near 555 Hz for the first 40 ms, THEN whips up to ~1.5 kHz
+           by 100 ms. The delay before the whip is what makes it read as a drop
+           rather than a blip.
+         - amplitude peaks 81 ms in, at the top of the sweep - it swells, it does
+           not click. Then it's gone: -30 dB by +80 ms, -69 dB by +180 ms.
+         - almost no sub (3% under 300 Hz) and mostly dry, so it stays a small
+           sound in a big room instead of a wash. */
+    dripFn = (amp=1)=>{
+      const t  = ctx.currentTime;
+      const f0 = 555 * (0.96 + Math.random()*0.08);   // barely varied, so it isn't a loop
+      const wet = ctx.createGain(); wet.gain.value = 0.30;
+      const dry = ctx.createGain(); dry.gain.value = 1.0;
+      wet.connect(rev); dry.connect(master);
+
+      const A = 0.075 * amp;
+      // one voice per partial: fundamental, plus an octave at 22% for the bite
+      [[1, 1.00], [2, 0.22]].forEach(([mult, rel])=>{
+        const o = ctx.createOscillator(), g = ctx.createGain();
+        o.type = 'sine';
+        const F = f0 * mult;
+        o.frequency.setValueAtTime(F, t);
+        o.frequency.setValueAtTime(F, t+0.046);          // the flat hold - then it whips
+        o.frequency.exponentialRampToValueAtTime(F*1.60, t+0.070);
+        o.frequency.exponentialRampToValueAtTime(F*2.70, t+0.105);
+        o.frequency.exponentialRampToValueAtTime(F*3.20, t+0.150);
+
+        const a = A * rel;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.linearRampToValueAtTime(a*0.30, t+0.012);      // onset
+        g.gain.linearRampToValueAtTime(a,      t+0.068);      // swell peaks at the top of the sweep
+        g.gain.exponentialRampToValueAtTime(a*0.18, t+0.108); // then it drops out fast
+        g.gain.exponentialRampToValueAtTime(a*0.02, t+0.148);
+        g.gain.exponentialRampToValueAtTime(0.0001, t+0.20);
+
+        o.connect(g); g.connect(wet); g.connect(dry);
+        o.start(t); o.stop(t+0.24);
+        o.onended = ()=>{ try{ o.disconnect(); g.disconnect(); }catch(e){} };
+      });
+
+      setTimeout(()=>{ try{ wet.disconnect(); dry.disconnect(); }catch(e){} }, 500);
+    };
+  }
+
+  /* drips run on their own clock, slower and lonelier than the glitch artifacts */
+  function drip(){
+    if(!running || !ctx || !dripFn) return;
+    try{
+      dripFn(0.85 + Math.random()*0.3);
+      const r = Math.random();
+      if(r > 0.68) setTimeout(()=>{ if(running) try{ dripFn(0.45+Math.random()*0.2); }catch(e){} }, 260 + Math.random()*220);
+      if(r > 0.93) setTimeout(()=>{ if(running) try{ dripFn(0.3); }catch(e){} }, 700 + Math.random()*400);
+    }catch(e){}
+    scheduleDrip();
+  }
+  function scheduleDrip(){
+    clearTimeout(dripTimer);
+    dripTimer = setTimeout(drip, 5000 + Math.random()*13000);
   }
 
   function artifact(){
@@ -1438,6 +1499,8 @@ const AMBIENT = (()=>{
         master.gain.setValueAtTime(0.0001, t);
         master.gain.exponentialRampToValueAtTime(level, t+2.2);
         schedule();
+        clearTimeout(dripTimer);
+        dripTimer = setTimeout(drip, 3500 + Math.random()*5000);
       }catch(e){ console.warn('ambient start failed', e); }
     },
     stop(){
@@ -1445,6 +1508,7 @@ const AMBIENT = (()=>{
         if(!running || !ctx) return;
         running = false;
         clearTimeout(artTimer);
+        clearTimeout(dripTimer);
         const t=ctx.currentTime;
         master.gain.cancelScheduledValues(t);
         master.gain.setValueAtTime(master.gain.value, t);
