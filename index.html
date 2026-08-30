@@ -291,14 +291,18 @@
   @keyframes ig{0%{transform:translate(0,0);}25%{transform:translate(5px,6px); clip-path:inset(30% 0 40% 0);}50%{transform:translate(-8px,-4px); clip-path:inset(64% 0 10% 0);}75%{transform:translate(4px,5px); clip-path:inset(14% 0 58% 0);}100%{transform:translate(0,0); opacity:0;}}
   @keyframes ib{0%{transform:translate(0,0);}25%{transform:translate(14px,-4px); clip-path:inset(42% 0 20% 0);}50%{transform:translate(-10px,6px); clip-path:inset(6% 0 64% 0);}75%{transform:translate(6px,-5px); clip-path:inset(68% 0 4% 0);}100%{transform:translate(0,0); opacity:0;}}
 
+  /* the teaser tile wears the same frame as a Corrupted Pips work - the
+     border and bleed come from .obj .face, so both tiles read as one set */
   .obj.soon{
-    border:2px dashed rgba(142,18,48,.55); border-radius:4px; display:flex; align-items:center; justify-content:center;
-    font-family:var(--display); color:rgba(242,239,232,.3); overflow:hidden; cursor:pointer;
-    transition:border-color .25s, color .25s, box-shadow .25s, transform .3s cubic-bezier(.2,.8,.3,1);
+    border-radius:4px; overflow:visible; cursor:pointer;
+    transition:transform .3s cubic-bezier(.2,.8,.3,1);
   }
-  .obj.soon:hover{
-    border-color:var(--bone); color:var(--bone); transform:translateY(-7px) scale(1.04) !important;
-    box-shadow:0 0 40px rgba(142,18,48,.5);
+  .obj.soon:hover{ transform:translateY(-7px) scale(1.04) !important; }
+  .obj.soon .face video{
+    width:100%; height:100%; object-fit:cover; display:block;
+    image-rendering:pixelated;
+    filter:saturate(.92) contrast(1.04) brightness(.94);
+    opacity:.94;
   }
   .obj.soon::after{
     content:""; position:absolute; inset:0; opacity:.5;
@@ -585,7 +589,7 @@
     <div><div class="nm">Corrupted Pips</div><div class="st">Sold Out · Ink</div></div>
   </div>
   <div class="row" onclick="pickCollection('soon')">
-    <div class="th">?</div>
+    <div class="th"><img src="pixelpips_teaser.jpg" alt="Pixel Pips"></div>
     <div><div class="nm">Coming Soon</div><div class="st">Unannounced</div></div>
   </div>
 </div>
@@ -704,7 +708,13 @@ collage.appendChild(main);
 const soon = document.createElement('div');
 soon.className = 'obj soon';
 soon.style.cssText = 'left:146px; top:-40px; width:132px; height:132px; transform:rotate(2.6deg); z-index:20; font-size:40px;';
-soon.innerHTML = `?<div class="cs-lbl">Coming Soon</div>`;
+soon.innerHTML = `<div class="face">
+    <video poster="pixelpips_teaser.jpg" autoplay loop muted playsinline preload="auto">
+      <source src="pixelpips_teaser.webm" type="video/webm">
+      <source src="pixelpips_teaser.mp4" type="video/mp4">
+      <img src="pixelpips_teaser.jpg" alt="Pixel Pips">
+    </video>
+  </div><div class="cs-lbl">Coming Soon</div>`;
 soon.onclick = openSoon;
 collage.appendChild(soon);
 
