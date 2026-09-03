@@ -560,7 +560,7 @@
 <div class="soon-stage" id="soon-stage">
   <div class="box">
     <img class="teaser" src="pixelpips_teaser.gif" alt="Pixel Pips">
-    <div class="cap">Coming Soon</div>
+    <div class="cap">Pre-launch</div>
   </div>
 </div>
 
@@ -586,7 +586,7 @@
   </div>
   <div class="row" onclick="pickCollection('soon')">
     <div class="th"><img src="pixelpips_teaser.gif" alt="Pixel Pips"></div>
-    <div><div class="nm">Coming Soon</div><div class="st">Unannounced</div></div>
+    <div><div class="nm">Pixel Pips</div><div class="st">Pre-launch · Robinhood</div></div>
   </div>
 </div>
 
@@ -705,7 +705,7 @@ const soon = document.createElement('div');
 soon.className = 'obj soon';
 soon.style.cssText = 'left:146px; top:-40px; width:132px; height:132px; transform:rotate(2.6deg); z-index:20; font-size:40px;';
 soon.innerHTML = `<div class="face"><img class="teaser" src="pixelpips_teaser.gif" alt="Pixel Pips"></div>
-  <div class="cs-lbl">Coming Soon</div>`;
+  <div class="cs-lbl">Pre-launch</div>`;
 soon.onclick = openSoon;
 collage.appendChild(soon);
 
@@ -826,11 +826,12 @@ const COLLECTIONS = {
   },
   soon: {
     title:['Pixel','Pips'],
-    sub:'Coming Soon',
-    body:'Coming soon.',
-    rows:[['Supply','3,333'],['Launch Price','Coming Soon'],['Standard','ERC-404'],['Chain','Robinhood Chain']],
+    sub:'Pre-launch. Site live.',
+    body:'Every pip is a receiver. The antenna picks the floor. The floor pays the stock. Ten floors, NVDA to MSTR. No mint. Buy it like a token, hold it like a pip.',
+    rows:[['Supply','3,334'],['Launch Price','$1.00'],['Standard','ERC-404'],['Chain','Robinhood Chain']],
     acts:[
-      ['Follow on X','https://x.com/pixelpips404',true]
+      ['pixelpips.cash','https://pixelpips.cash',true],
+      ['Follow on X','https://x.com/pixelpips404',false]
     ]
   }
 };
