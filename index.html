@@ -1776,6 +1776,8 @@ function setAmbVol(v){
 }
 
 let ambOn = false;
+// ambience starts itself on the first click anywhere (browsers need a gesture); the button still turns it off
+document.addEventListener('pointerdown', ()=>{ if(!ambOn) toggleAmbient(); }, { once:true, capture:true });
 function toggleAmbient(){
   ambOn = !ambOn;
   fx(()=>{ ambOn ? AMBIENT.start() : AMBIENT.stop(); });
