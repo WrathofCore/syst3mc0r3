@@ -359,6 +359,7 @@
     font-family:var(--code); font-size:8px; letter-spacing:.14em; padding:3px 5px; }
   .ds-recent .empty{ font-family:var(--mono); font-size:9px; letter-spacing:.2em; color:var(--dim); text-transform:uppercase; }
   @media (max-width:760px){
+    #ds-turnstile{ display:none !important; }
     .ds-recent{ right:0; left:0; top:104px; width:auto; padding:0 12px; transform:translateY(-20px); }
     #ds-stage.live .ds-recent{ transform:translateY(0); }
     .ds-recent .grid{ grid-template-columns:repeat(6,1fr); gap:6px; }
@@ -640,6 +641,7 @@
     <div class="grid" id="ds-recent-grid"><div class="empty">Waiting for the first mint</div></div>
   </div>
   <div class="cap" id="ds-cap" style="position:absolute; bottom:calc(50% - min(150px,21vmin) - 30px); left:0; right:0; text-align:center; font-family:var(--mono); font-size:9px; letter-spacing:.3em; color:var(--dim); text-transform:uppercase;"></div>
+  <div id="ds-turnstile" style="position:absolute; bottom:calc(50% - min(150px,21vmin) - 100px); left:0; right:0; display:flex; justify-content:center;"></div>
 </div>
 
 <div class="wall-stage" id="wall-stage">
@@ -972,7 +974,7 @@ function renderDetail(key){
     if(u==='#opensea')  u = DS.opensea;
     if(u==='#contract') u = DS.contract ? `${DS.explorer}/address/${DS.contract}` : '#';
     return `<a class="${pri?'pri':''}" href="${u}" target="_blank" rel="noopener">${t}</a>`;
-  }).join('') + (key==='ds' ? '<div id="ds-turnstile" style="margin-top:8px"></div>' : '');
+  }).join('') + (key==='ds' ? '<div id="ds-turnstile-m" style="margin-top:8px"></div>' : '');
 }
 
 function openDS(){
@@ -1792,7 +1794,9 @@ const DS_ABI=[
 ];
 let dsWidget=null;
 function dsMountTurnstile(){
-  const el=$('ds-turnstile'); if(!el || !window.turnstile || !DS.turnstileSiteKey || DS.turnstileSiteKey.startsWith('PASTE')) return;
+  const mobile = window.matchMedia('(max-width:760px)').matches;
+  const el = mobile ? $('ds-turnstile-m') : $('ds-turnstile');
+  if(!el || !window.turnstile || !DS.turnstileSiteKey || DS.turnstileSiteKey.startsWith('PASTE')) return;
   if(dsWidget!==null){ try{ turnstile.remove(dsWidget); }catch(e){} }
   dsWidget = turnstile.render(el, { sitekey: DS.turnstileSiteKey, theme:'dark', size:'compact' });
 }
