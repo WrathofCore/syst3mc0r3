@@ -1891,7 +1891,9 @@ async function dsSigner(){ /* HUB_CHAIN_FIX2 */
   }
   /* provider built AFTER the switch, and told to tolerate changes, so ethers never locks onto the old chain */
   const p=new ethers.providers.Web3Provider(eth,'any');
-  await p.send('eth_requestAccounts',[]);
+  /* HUB_ACCOUNTS_FIX: silent check first; only prompt to connect if the site truly isn't connected */
+  const accs=await eth.request({method:'eth_accounts'}).catch(()=>[]);
+  if(!accs||!accs.length) await p.send('eth_requestAccounts',[]);
   const id=await eth.request({method:'eth_chainId'}).catch(()=>'');
   if(String(id).toLowerCase()!==want) throw new Error('chain: wrong network');
   return new ethers.Contract(DS.contract,DS_ABI,p.getSigner());
