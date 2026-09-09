@@ -1807,10 +1807,15 @@ async function dsRenderRecent(n, p){
   // real mint events (Transfer from 0x0), newest first — airdropped ids aren't sequential
   let ids=[];
   try{
-    const latest=await p.getBlockNumber();
-    const logs=await p.getLogs({address:DS.contract, fromBlock:Math.max(0,latest-20000), toBlock:latest,
-      topics:[ethers.utils.id('Transfer(address,address,uint256)'), ethers.constants.HashZero]});
-    ids=logs.map(l=>ethers.BigNumber.from(l.topics[3]).toNumber()).reverse().slice(0,6);
+    // RPC caps eth_getLogs at 10k blocks; walk back in windows until we have six
+    const latest=await p.getBlockNumber(); const topics=[ethers.utils.id('Transfer(address,address,uint256)'), ethers.constants.HashZero];
+    for(let to=latest, k=0; k<12 && ids.length<6 && to>0; k++){
+      const from=Math.max(0,to-9000);
+      const logs=await p.getLogs({address:DS.contract, fromBlock:from, toBlock:to, topics});
+      ids=ids.concat(logs.map(l=>ethers.BigNumber.from(l.topics[3]).toNumber()).reverse()).slice(0,6);
+      if(logs.length && ids.length>=6) break;
+      to=from-1;
+    }
   }catch(e){ console.warn('recent logs', e); }
   if(!ids.length){ for(let i=n;i>0 && ids.length<6;i--) ids.push(i); }
   g.innerHTML = ids.map(id=>`<a href="${dsItem(id)}" target="_blank" rel="noopener"><img src="${dsImg(id)}" loading="lazy" alt="#${id}"><div class="cap">#${id}</div></a>`).join('');
