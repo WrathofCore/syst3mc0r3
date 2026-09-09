@@ -1875,23 +1875,25 @@ async function refreshDS(){
     }
   }catch(e){ console.warn('ds supply', e); dsSetStatus('Free mint · Ink'); }
 }
-async function dsSigner(){ /* HUB_CHAIN_FIX */
-  const p=new ethers.providers.Web3Provider(window.ethereum);
-  await p.send('eth_requestAccounts',[]);
-  const want=DS.chainIdHex.toLowerCase();
-  const onInk=async()=>{ try{ const id=await window.ethereum.request({method:'eth_chainId'}); return String(id).toLowerCase()===want; }catch(e){ return false; } };
+async function dsSigner(){ /* HUB_CHAIN_FIX2 */
+  const eth=window.ethereum, want=DS.chainIdHex.toLowerCase();
   const withTimeout=(pr,ms)=>Promise.race([pr,new Promise((_,rej)=>setTimeout(()=>rej(new Error('chain: timeout')),ms))]);
-  if(!(await onInk())){
-    try{ await withTimeout(window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:DS.chainIdHex}]}),25000); }
+  const addParams=[{chainId:DS.chainIdHex,chainName:DS.chainName,rpcUrls:[DS.rpcUrl],blockExplorerUrls:[DS.explorer],nativeCurrency:{name:'Ether',symbol:'ETH',decimals:18}}];
+  /* network prompt first, straight off the tap, before any other await: mobile wallets drop prompts buried in async chains */
+  const now=String(eth.chainId||'').toLowerCase();
+  if(now!==want){
+    try{ await withTimeout(eth.request({method:'wallet_addEthereumChain',params:addParams}),20000); }
     catch(err){
-      if(err && err.code===4902){
-        try{ await withTimeout(window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:DS.chainIdHex,chainName:DS.chainName,rpcUrls:[DS.rpcUrl],blockExplorerUrls:[DS.explorer],nativeCurrency:{name:'Ether',symbol:'ETH',decimals:18}}]}),25000); }
-        catch(e2){ throw new Error('chain: cannot add'); }
-      } else if(err && (err.code===4001 || /denied|rejected/i.test(err.message||''))){ throw err; }
-      else throw new Error('chain: cannot switch');
+      if(err && (err.code===4001 || /denied|rejected/i.test(err.message||''))) throw err;
+      try{ await withTimeout(eth.request({method:'wallet_switchEthereumChain',params:[{chainId:DS.chainIdHex}]}),20000); }
+      catch(e2){ if(e2 && (e2.code===4001 || /denied|rejected/i.test(e2.message||''))) throw e2; throw new Error('chain: cannot switch'); }
     }
-    if(!(await onInk())) throw new Error('chain: wrong network');
   }
+  /* provider built AFTER the switch, and told to tolerate changes, so ethers never locks onto the old chain */
+  const p=new ethers.providers.Web3Provider(eth,'any');
+  await p.send('eth_requestAccounts',[]);
+  const id=await eth.request({method:'eth_chainId'}).catch(()=>'');
+  if(String(id).toLowerCase()!==want) throw new Error('chain: wrong network');
   return new ethers.Contract(DS.contract,DS_ABI,p.getSigner());
 }
 async function dsTx(id,label,fn){
@@ -1915,7 +1917,7 @@ async function dsTx(id,label,fn){
     else if(msg.includes('alreadyminted')) out='This wallet already minted';
     else if(msg.includes('soldout')) out='Minted out';
     else if(msg.includes('mintclosed')||msg.includes('mint closed')) out='Not open yet';
-    else if(msg.startsWith('chain:')) out='Wallet didn\'t switch to Ink · add Ink Mainnet in your wallet, switch to it, reload';
+    else if(msg.startsWith('chain:')) out='Wallet didn\'t switch to Ink · approve the network prompt and tap Mint again';
     else if(msg.includes('turnstile')) out='Complete the check first';
     else if(msg.includes('already minted')) out='This wallet already minted';
     else if(msg.includes('expired')) out='Signature expired · try again';
