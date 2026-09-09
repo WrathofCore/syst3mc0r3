@@ -38,6 +38,8 @@
     --edge:#8e1230;
     --ds:#b44cff;        /* DATASTREAMERS accent */
     --ds-edge:#5c1ea8;
+    --pp:#00ff9d;        /* PIXEL PIPS accent (Robinhood green) */
+    --pp-edge:#0b7a4c;
     /* ---- TYPE ----
        UnifrakturMaguntia = true medieval textura quadrata (authentic Old English)
        UnifrakturCook     = bolder decorative cut
@@ -337,7 +339,7 @@
   .detail.ds .back:hover{ color:var(--ds); border-color:var(--ds); }
   /* recently minted */
   .ds-recent{
-    position:fixed; right:clamp(24px,4vw,52px); top:170px; width:clamp(180px,17vw,236px); z-index:130;
+    position:fixed; right:clamp(24px,4vw,52px); top:340px; width:clamp(180px,17vw,236px); z-index:130;
     opacity:0; pointer-events:none; transform:translateX(30px);
     transition:opacity .45s, transform .55s cubic-bezier(.16,1,.3,1);
   }
@@ -359,6 +361,19 @@
     .ds-recent .grid{ grid-template-columns:repeat(6,1fr); gap:6px; }
     .ds-recent a .cap{ display:none; }
   }
+
+  /* ============ PIXEL PIPS theme ============ */
+  .obj.soon.pp .face{ border-color:var(--pp-edge);
+    box-shadow:0 0 0 1px rgba(11,122,76,.7), 0 30px 80px rgba(0,0,0,.95), 0 0 40px rgba(0,255,157,.18); }
+  #soon-stage .box{ border-color:var(--pp-edge);
+    box-shadow:0 0 0 1px rgba(11,122,76,.7), 0 30px 80px rgba(0,0,0,.95), 0 0 50px rgba(0,255,157,.18); }
+  .detail.pp .sub{ color:var(--pp); }
+  .detail.pp .rule{ background:var(--pp); }
+  .detail.pp h1{ color:#d8ffef; }
+  .detail.pp dd{ color:#a8f5d0; }
+  .detail.pp .acts a.pri{ background:var(--pp); border-color:var(--pp); color:#000; }
+  .detail.pp .acts a:hover{ background:var(--pp-edge); border-color:var(--pp-edge); color:var(--bone); }
+  .detail.pp .back:hover{ color:var(--pp); border-color:var(--pp); }
 
   /* ============ WALL ============ */
   .wall-stage{position:fixed; inset:0; z-index:50; opacity:0; pointer-events:none; transition:opacity .45s;}
@@ -792,7 +807,7 @@ pipsTile.onclick = openWall;
 collage.appendChild(pipsTile);
 
 const soon = document.createElement('div');
-soon.className = 'obj soon';
+soon.className = 'obj soon pp';
 soon.style.cssText = 'left:152px; top:-30px; width:132px; height:132px; transform:rotate(2.6deg); z-index:20; font-size:40px;';
 soon.innerHTML = `<div class="face"><img class="teaser" src="pixelpips_teaser.gif" alt="Pixel Pips"></div>
   <div class="cs-lbl">Coming soon</div>`;
@@ -961,7 +976,7 @@ function openDS(){
   holdGlitch(700);
   renderDetail('ds');
   markActive('ds');
-  $('detail').classList.add('ds');
+  $('detail').classList.add('ds'); $('detail').classList.remove('pp');
   const box=$('ds-box');
   box.innerHTML = DS.liveUrl
     ? `<iframe src="${DS.liveUrl}" allow="autoplay" loading="lazy"></iframe>`
@@ -981,7 +996,7 @@ function openSoon(){
   onWall = true;
   holdGlitch(700);
   renderDetail('soon');
-  $('detail').classList.remove('ds');
+  $('detail').classList.remove('ds'); $('detail').classList.add('pp');
   $('home').classList.add('gone');
   $('ds-stage').classList.remove('live');
   $('wall-stage').classList.remove('live');
@@ -1000,7 +1015,7 @@ function openWall(){
   onWall = true;
   holdGlitch(820);
   renderDetail('pips');
-  $('detail').classList.remove('ds');
+  $('detail').classList.remove('ds'); $('detail').classList.remove('pp');
   $('soon-stage').classList.remove('live');
   $('ds-stage').classList.remove('live');
   $('home').classList.add('gone');
@@ -1022,7 +1037,7 @@ function goHome(){
   $('ds-stage').classList.remove('live');
   $('wall-stage').classList.remove('live');
   $('detail').classList.remove('live');
-  $('detail').classList.remove('ds');
+  $('detail').classList.remove('ds'); $('detail').classList.remove('pp');
   $('home').classList.remove('gone');
   document.querySelectorAll('.colllist .row').forEach(r=>r.classList.remove('on'));
   layoutStack();
