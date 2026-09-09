@@ -36,6 +36,8 @@
     --g:#00ff9d;
     --b:#00b3ff;
     --edge:#8e1230;
+    --ds:#b44cff;        /* DATASTREAMERS accent */
+    --ds-edge:#5c1ea8;
     /* ---- TYPE ----
        UnifrakturMaguntia = true medieval textura quadrata (authentic Old English)
        UnifrakturCook     = bolder decorative cut
@@ -318,6 +320,46 @@
     font-family:var(--mono); font-size:8px; letter-spacing:.28em; color:var(--dim); 
   }
 
+  /* ============ DATASTREAMERS theme ============ */
+  .obj.main.ds .face{ border-color:var(--ds-edge);
+    box-shadow:0 0 0 1px rgba(92,30,168,.7), 0 30px 80px rgba(0,0,0,.95), 0 0 40px rgba(180,76,255,.22), 0 0 90px rgba(255,61,240,.12); }
+  .obj.main .face iframe{ width:100%; height:100%; border:0; display:block; background:#000; pointer-events:none; }
+  .obj.main .cs-lbl{ position:absolute; bottom:-24px; left:0; right:0; text-align:center;
+    font-family:var(--mono); font-size:8px; letter-spacing:.28em; color:var(--dim); }
+  #ds-stage .box{ border-color:var(--ds-edge);
+    box-shadow:0 0 0 1px rgba(92,30,168,.7), 0 30px 80px rgba(0,0,0,.95), 0 0 50px rgba(180,76,255,.22); }
+  .detail.ds .sub{ color:var(--ds); }
+  .detail.ds .rule{ background:var(--ds); }
+  .detail.ds h1{ color:#ead9ff; }
+  .detail.ds dd{ color:#d7b9ff; }
+  .detail.ds .acts a.pri{ background:var(--ds); border-color:var(--ds); color:#000; }
+  .detail.ds .acts a:hover{ background:var(--ds-edge); border-color:var(--ds-edge); color:var(--bone); }
+  .detail.ds .back:hover{ color:var(--ds); border-color:var(--ds); }
+  /* recently minted */
+  .ds-recent{
+    position:fixed; right:clamp(24px,4vw,52px); top:170px; width:clamp(180px,17vw,236px); z-index:130;
+    opacity:0; pointer-events:none; transform:translateX(30px);
+    transition:opacity .45s, transform .55s cubic-bezier(.16,1,.3,1);
+  }
+  #ds-stage.live .ds-recent{ opacity:1; transform:translateX(0); pointer-events:auto; }
+  .ds-recent .hd{ font-family:var(--mono); font-size:8px; letter-spacing:.28em; color:var(--ds); text-transform:uppercase;
+    padding-bottom:8px; margin-bottom:10px; border-bottom:1px solid var(--ds-edge); display:flex; justify-content:space-between; }
+  .ds-recent .hd span:last-child{ color:var(--dim); }
+  .ds-recent .grid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .ds-recent a{ position:relative; display:block; aspect-ratio:1; background:#000; border:2px solid var(--ds-edge); border-radius:4px; overflow:hidden;
+    box-shadow:0 0 0 1px rgba(92,30,168,.5), 0 10px 30px rgba(0,0,0,.9); transition:transform .3s, border-color .3s; }
+  .ds-recent a:hover{ transform:translateY(-4px) scale(1.04); border-color:var(--ds); }
+  .ds-recent a img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .ds-recent a .cap{ position:absolute; bottom:0; left:0; right:0; background:rgba(92,30,168,.85); color:#fff;
+    font-family:var(--code); font-size:8px; letter-spacing:.14em; padding:3px 5px; }
+  .ds-recent .empty{ font-family:var(--mono); font-size:9px; letter-spacing:.2em; color:var(--dim); text-transform:uppercase; }
+  @media (max-width:760px){
+    .ds-recent{ right:0; left:0; top:104px; width:auto; padding:0 12px; transform:translateY(-20px); }
+    #ds-stage.live .ds-recent{ transform:translateY(0); }
+    .ds-recent .grid{ grid-template-columns:repeat(6,1fr); gap:6px; }
+    .ds-recent a .cap{ display:none; }
+  }
+
   /* ============ WALL ============ */
   .wall-stage{position:fixed; inset:0; z-index:50; opacity:0; pointer-events:none; transition:opacity .45s;}
   .wall-stage.live{opacity:1; pointer-events:auto;}
@@ -569,12 +611,16 @@
 <div class="soon-stage" id="soon-stage">
   <div class="box">
     <img class="teaser" src="pixelpips_teaser.gif" alt="Pixel Pips">
-    <div class="cap">Pre-launch</div>
+    <div class="cap">Coming soon</div>
   </div>
 </div>
 
 <div class="soon-stage" id="ds-stage">
   <div class="box" id="ds-box"></div>
+  <div class="ds-recent" id="ds-recent">
+    <div class="hd"><span>Recently minted</span><span id="ds-recent-n"></span></div>
+    <div class="grid" id="ds-recent-grid"><div class="empty">Waiting for the first mint</div></div>
+  </div>
   <div class="cap" id="ds-cap" style="position:absolute; bottom:calc(50% - min(150px,21vmin) - 30px); left:0; right:0; text-align:center; font-family:var(--mono); font-size:9px; letter-spacing:.3em; color:var(--dim); text-transform:uppercase;"></div>
 </div>
 
@@ -604,7 +650,7 @@
   </div>
   <div class="row" data-key="soon" onclick="pickCollection('soon')">
     <div class="th"><img src="pixelpips_teaser.gif" alt="Pixel Pips"></div>
-    <div><div class="nm">Pixel Pips</div><div class="st">Pre-launch · Robinhood</div></div>
+    <div><div class="nm">Pixel Pips</div><div class="st">Coming soon · Robinhood</div></div>
   </div>
 </div>
 
@@ -726,28 +772,32 @@ const $ = id => document.getElementById(id);
 
 /* ===== HOME: one main + one coming-soon, tight ===== */
 const collage = $('collage');
+/* DATASTREAMERS is the main tile while it mints: the live renderer, framed in purple */
 const main = document.createElement('div');
-main.className = 'obj main'; main.id = 'obj-main';
-main.style.cssText = 'left:-150px; top:-134px; width:268px; height:268px; transform:rotate(-1.6deg); z-index:50;';
-main.innerHTML = `<div class="face"><img src="${img(V3.faceId)}" alt="Corrupted Pips"></div>`;
-main.onclick = openWall;
+main.className = 'obj main ds'; main.id = 'obj-main';
+main.style.cssText = 'left:-134px; top:-150px; width:268px; height:268px; transform:rotate(-1.6deg); z-index:50;';
+main.innerHTML = `<div class="face">${DS.liveUrl
+  ? `<iframe src="${DS.liveUrl}" loading="lazy" title="Datastreamers live"></iframe>`
+  : `<img src="${dsFace()}" alt="Datastreamers">`}</div>
+  <div class="cs-lbl">Live · Free mint</div>`;
+main.onclick = openDS;
 collage.appendChild(main);
+
+const pipsTile = document.createElement('div');
+pipsTile.className = 'obj soon';
+pipsTile.style.cssText = 'left:-300px; top:20px; width:150px; height:150px; transform:rotate(-2.4deg); z-index:30;';
+pipsTile.innerHTML = `<div class="face"><img src="${img(V3.faceId)}" alt="Corrupted Pips" style="image-rendering:pixelated"></div>
+  <div class="cs-lbl">Sold out</div>`;
+pipsTile.onclick = openWall;
+collage.appendChild(pipsTile);
 
 const soon = document.createElement('div');
 soon.className = 'obj soon';
-soon.style.cssText = 'left:146px; top:-40px; width:132px; height:132px; transform:rotate(2.6deg); z-index:20; font-size:40px;';
+soon.style.cssText = 'left:152px; top:-30px; width:132px; height:132px; transform:rotate(2.6deg); z-index:20; font-size:40px;';
 soon.innerHTML = `<div class="face"><img class="teaser" src="pixelpips_teaser.gif" alt="Pixel Pips"></div>
-  <div class="cs-lbl">Pre-launch</div>`;
+  <div class="cs-lbl">Coming soon</div>`;
 soon.onclick = openSoon;
 collage.appendChild(soon);
-
-const dsTile = document.createElement('div');
-dsTile.className = 'obj soon ds';
-dsTile.style.cssText = 'left:-262px; top:118px; width:156px; height:156px; transform:rotate(-2.4deg); z-index:30;';
-dsTile.innerHTML = `<div class="face"><img class="teaser" src="${dsFace()}" alt="Datastreamers"></div>
-  <div class="cs-lbl">Live</div>`;
-dsTile.onclick = openDS;
-collage.appendChild(dsTile);
 
 /* ===== WALL ===== */
 const WORKS = [
@@ -876,7 +926,7 @@ const COLLECTIONS = {
   },
   soon: {
     title:['Pixel','Pips'],
-    sub:'Pre-launch. Site live.',
+    sub:'Coming soon.',
     body:'Every pip is a receiver. The antenna picks the floor. The floor pays the stock. Ten floors, NVDA to MSTR. No mint. Buy it like a token, hold it like a pip.',
     rows:[['Supply','3,334'],['Launch Price','$1.00'],['Standard','ERC-404'],['Chain','Robinhood Chain']],
     acts:[
@@ -911,6 +961,7 @@ function openDS(){
   holdGlitch(700);
   renderDetail('ds');
   markActive('ds');
+  $('detail').classList.add('ds');
   const box=$('ds-box');
   box.innerHTML = DS.liveUrl
     ? `<iframe src="${DS.liveUrl}" allow="autoplay" loading="lazy"></iframe>`
@@ -920,7 +971,7 @@ function openDS(){
   $('soon-stage').classList.remove('live');
   $('ds-stage').classList.add('live');
   $('detail').classList.add('live');
-  refreshDS();
+  refreshDS(); dsStartPoll();
   fx(()=>{ SFX.open(); AMBIENT.duck(1.1); });
   setTimeout(()=>fx(()=>{ fireSweep(); if(!reentry) fireTear(); stampBlocks(5); }), 700);
 }
@@ -930,6 +981,7 @@ function openSoon(){
   onWall = true;
   holdGlitch(700);
   renderDetail('soon');
+  $('detail').classList.remove('ds');
   $('home').classList.add('gone');
   $('ds-stage').classList.remove('live');
   $('wall-stage').classList.remove('live');
@@ -948,6 +1000,7 @@ function openWall(){
   onWall = true;
   holdGlitch(820);
   renderDetail('pips');
+  $('detail').classList.remove('ds');
   $('soon-stage').classList.remove('live');
   $('ds-stage').classList.remove('live');
   $('home').classList.add('gone');
@@ -969,6 +1022,7 @@ function goHome(){
   $('ds-stage').classList.remove('live');
   $('wall-stage').classList.remove('live');
   $('detail').classList.remove('live');
+  $('detail').classList.remove('ds');
   $('home').classList.remove('gone');
   document.querySelectorAll('.colllist .row').forEach(r=>r.classList.remove('on'));
   layoutStack();
@@ -1718,6 +1772,19 @@ const DS_ABI=[
   "function qtyFor(address) view returns (uint256)"
 ];
 function dsSetStatus(t){ const c=$('ds-cap'); if(c) c.textContent=t; }
+const dsItem = id => `https://opensea.io/item/ink/${DS.contract}/${id}`;
+let dsRecentN = -1;
+function dsRenderRecent(n){
+  if(n===dsRecentN) return; dsRecentN=n;
+  const g=$('ds-recent-grid'), c=$('ds-recent-n'); if(!g) return;
+  if(c) c.textContent = n>=DS.supply ? 'Minted out' : `${n} / ${DS.supply}`;
+  if(n<=0){ g.innerHTML='<div class="empty">Waiting for the first mint</div>'; return; }
+  const ids=[]; for(let i=n;i>0 && ids.length<6;i--) ids.push(i);
+  g.innerHTML = ids.map(id=>`<a href="${dsItem(id)}" target="_blank" rel="noopener"><img src="${dsImg(id)}" loading="lazy" alt="#${id}"><div class="cap">#${id}</div></a>`).join('');
+}
+let dsPoll=null;
+function dsStartPoll(){ dsStopPoll(); dsPoll=setInterval(()=>{ if($('ds-stage').classList.contains('live')) refreshDS(); else dsStopPoll(); }, 20000); }
+function dsStopPoll(){ if(dsPoll){ clearInterval(dsPoll); dsPoll=null; } }
 function dsSetBtn(id,t,dis){ const b=$('act-'+id); if(!b) return; b.textContent=t; b.style.pointerEvents=dis?'none':''; b.style.opacity=dis?'.45':''; }
 async function refreshDS(){
   if(!DS.contract){ dsSetStatus('Mint opens soon'); dsSetBtn('mintDS','Mint opens soon',true); $('cl-ds-st').textContent='Soon · Ink'; return; }
@@ -1727,6 +1794,7 @@ async function refreshDS(){
     const [nBN,open]=await Promise.all([c.totalSupply(),c.mintOpen()]);
     const n=nBN.toNumber();
     const m=$('ds-minted'); if(m) m.textContent=`${n.toLocaleString()} / ${DS.supply.toLocaleString()}`;
+    dsRenderRecent(n);
     if(n>=DS.supply){ dsSetStatus('Minted out'); dsSetBtn('mintDS','Minted out',true); $('cl-ds-st').textContent='Sold Out · Ink'; }
     else if(!open){ dsSetStatus('Mint opens soon'); dsSetBtn('mintDS','Mint opens soon',true); $('cl-ds-st').textContent='Soon · Ink'; }
     else { dsSetStatus(`${n.toLocaleString()} / ${DS.supply.toLocaleString()} minted · free`); dsSetBtn('mintDS','Mint',false); $('cl-ds-st').textContent='Live · Ink'; }
