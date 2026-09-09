@@ -593,6 +593,20 @@
     text-transform:lowercase;
   }
   .sheet-close{position:absolute; top:12px; right:14px; background:none; border:none; color:var(--bone); font-size:15px; cursor:pointer; font-family:var(--mono);}
+
+  /* HUB_MOBILE_FIX: phone layout. header row, drawer under header, DS stage below the minted strip */
+  @media (max-width:760px){
+    .vol{display:none;}
+    .meta{max-width:calc(100vw - 150px);}
+    .nav{flex-direction:row; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:6px 14px;}
+    #wallet-btn{margin-top:0;}
+    .colllist{top:88px; bottom:auto; max-height:calc(100vh - 100px); overflow-y:auto;}
+    body.list-open .colllist{bottom:auto;}
+    #ds-stage{top:186px; bottom:58vh; align-items:flex-start;}
+    #ds-stage .box{width:max(90px, min(150px, 34vmin, calc(42vh - 216px))); margin-bottom:0;}
+    #ds-stage .ds-recent{top:88px;}
+    #ds-cap{bottom:0 !important;}
+  }
 </style>
 </head>
 <body>
