@@ -730,6 +730,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
 <script>
 const V3 = {
   contract:'0x1c882abe733534910bb334d25ce0f8ce46f0e164',
@@ -743,7 +744,8 @@ const img = id => V3.imageBase.replace('{id}', id);
 
 /* ===== DATASTREAMERS (free mint · Ink) ===== */
 const DS = {
-  contract:'0xdc44212aE96C9C7eD19b10c66259c4f9A402b8e9',
+  contract:'',   // paste new address
+  turnstileSiteKey:'PASTE_TURNSTILE_SITEKEY',
   pips:V3.contract,
   chainIdHex:V3.chainIdHex, chainName:V3.chainName, rpcUrl:V3.rpcUrl, explorer:V3.explorer,
   imageBase:'https://img.syst3mc0r3.art/datastreamers/img/{id}.webp',
@@ -965,7 +967,7 @@ function renderDetail(key){
   $('det-sub').textContent = c.sub;
   $('det-body').textContent = c.body;
   $('det-dl').innerHTML = c.rows.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('');
-  $('det-acts').innerHTML = c.acts.map(([t,u,pri])=>{
+  $('det-acts').innerHTML = (key==='ds' ? '<div id="ds-turnstile" style="margin-bottom:6px"></div>' : '') + c.acts.map(([t,u,pri])=>{
     if(u.startsWith('js:')) return `<a class="${pri?'pri':''}" id="act-${u.slice(3)}" href="#" onclick="event.preventDefault(); ${u.slice(3)}()">${t}</a>`;
     if(u==='#opensea')  u = DS.opensea;
     if(u==='#contract') u = DS.contract ? `${DS.explorer}/address/${DS.contract}` : '#';
@@ -989,7 +991,7 @@ function openDS(){
   $('soon-stage').classList.remove('live');
   $('ds-stage').classList.add('live');
   $('detail').classList.add('live');
-  refreshDS(); dsStartPoll();
+  refreshDS(); dsStartPoll(); setTimeout(dsMountTurnstile, 50);
   fx(()=>{ SFX.open(); AMBIENT.duck(1.1); });
   setTimeout(()=>fx(()=>{ fireSweep(); if(!reentry) fireTear(); stampBlocks(5); }), 700);
 }
@@ -1782,13 +1784,18 @@ function toggleAmbient(){
 
 /* ===== DATASTREAMERS mint ===== */
 const DS_ABI=[
-  "function mint()",
+  "function mint(uint256 qty, uint256 deadline, bytes sig)",
   "function totalSupply() view returns (uint256)",
   "function balanceOf(address owner) view returns (uint256)",
   "function mintOpen() view returns (bool)",
-  "function minted(address) view returns (bool)",
-  "function qtyFor(address) view returns (uint256)"
+  "function minted(address) view returns (bool)"
 ];
+let dsWidget=null;
+function dsMountTurnstile(){
+  const el=$('ds-turnstile'); if(!el || !window.turnstile || !DS.turnstileSiteKey || DS.turnstileSiteKey.startsWith('PASTE')) return;
+  if(dsWidget!==null){ try{ turnstile.remove(dsWidget); }catch(e){} }
+  dsWidget = turnstile.render(el, { sitekey: DS.turnstileSiteKey, theme:'dark', size:'compact' });
+}
 function dsSetStatus(t){ const c=$('ds-cap'); if(c) c.textContent=t; }
 const dsItem = id => `https://opensea.io/item/ink/${DS.contract}/${id}`;
 let dsRecentN = -1;
@@ -1821,9 +1828,9 @@ async function refreshDS(){
       try{
         const accs=await window.ethereum.request({method:'eth_accounts'});
         if(accs && accs[0]){
-          const [done,q]=await Promise.all([c.minted(accs[0]),c.qtyFor(accs[0])]);
+          const [done,pb]=await Promise.all([c.minted(accs[0]), new ethers.Contract(DS.pips,ABI,p).balanceOf(accs[0])]);
           if(done) dsSetBtn('mintDS','Minted',true);
-          else if(q.toNumber()===2) dsSetBtn('mintDS','Mint 2 · Pips holder',false);
+          else if(pb.toNumber()>0) dsSetBtn('mintDS','Mint 2 · Pips holder',false);
         }
       }catch(e){}
     }
@@ -1856,12 +1863,26 @@ async function dsTx(id,label,fn){
     if(msg.includes('denied')||msg.includes('rejected')) out='Rejected';
     else if(msg.includes('alreadyminted')) out='This wallet already minted';
     else if(msg.includes('soldout')) out='Minted out';
-    else if(msg.includes('mintclosed')) out='Not open yet';
+    else if(msg.includes('mintclosed')||msg.includes('mint closed')) out='Not open yet';
+    else if(msg.includes('turnstile')) out='Complete the check first';
+    else if(msg.includes('already minted')) out='This wallet already minted';
+    else if(msg.includes('expired')) out='Signature expired · try again';
     dsSetStatus(out);
     dsSetBtn(id,label,false);
   }
 }
-function mintDS(){ return dsTx('mintDS','Mint',c=>c.mint()); }
+function mintDS(){
+  return dsTx('mintDS','Mint', async c=>{
+    const token = (window.turnstile && dsWidget!==null) ? turnstile.getResponse(dsWidget) : '';
+    if(!token) throw new Error('turnstile: complete the check first');
+    const wallet = await c.signer.getAddress();
+    const r = await fetch('/api/sign',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet,token})});
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error('server: '+(j.error||r.status));
+    try{ turnstile.reset(dsWidget); }catch(e){}
+    return c.mint(j.qty, j.deadline, j.sig);
+  });
+}
 if(window.ethereum){ window.ethereum.on && window.ethereum.on('accountsChanged',()=>refreshDS()); }
 
 /* ===== wallet ===== */

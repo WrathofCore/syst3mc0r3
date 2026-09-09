@@ -1,0 +1,7 @@
+{
+  "name": "syst3mc0r3-site",
+  "private": true,
+  "dependencies": {
+    "ethers": "^6.17.0"
+  }
+}
