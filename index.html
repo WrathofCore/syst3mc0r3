@@ -1875,11 +1875,23 @@ async function refreshDS(){
     }
   }catch(e){ console.warn('ds supply', e); dsSetStatus('Free mint · Ink'); }
 }
-async function dsSigner(){
+async function dsSigner(){ /* HUB_CHAIN_FIX */
   const p=new ethers.providers.Web3Provider(window.ethereum);
   await p.send('eth_requestAccounts',[]);
-  try{ await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:DS.chainIdHex}]}); }
-  catch(err){ if(err.code===4902){ await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:DS.chainIdHex,chainName:DS.chainName,rpcUrls:[DS.rpcUrl],blockExplorerUrls:[DS.explorer],nativeCurrency:{name:'Ether',symbol:'ETH',decimals:18}}]}); } else throw err; }
+  const want=DS.chainIdHex.toLowerCase();
+  const onInk=async()=>{ try{ const id=await window.ethereum.request({method:'eth_chainId'}); return String(id).toLowerCase()===want; }catch(e){ return false; } };
+  const withTimeout=(pr,ms)=>Promise.race([pr,new Promise((_,rej)=>setTimeout(()=>rej(new Error('chain: timeout')),ms))]);
+  if(!(await onInk())){
+    try{ await withTimeout(window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:DS.chainIdHex}]}),25000); }
+    catch(err){
+      if(err && err.code===4902){
+        try{ await withTimeout(window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:DS.chainIdHex,chainName:DS.chainName,rpcUrls:[DS.rpcUrl],blockExplorerUrls:[DS.explorer],nativeCurrency:{name:'Ether',symbol:'ETH',decimals:18}}]}),25000); }
+        catch(e2){ throw new Error('chain: cannot add'); }
+      } else if(err && (err.code===4001 || /denied|rejected/i.test(err.message||''))){ throw err; }
+      else throw new Error('chain: cannot switch');
+    }
+    if(!(await onInk())) throw new Error('chain: wrong network');
+  }
   return new ethers.Contract(DS.contract,DS_ABI,p.getSigner());
 }
 async function dsTx(id,label,fn){
@@ -1903,6 +1915,7 @@ async function dsTx(id,label,fn){
     else if(msg.includes('alreadyminted')) out='This wallet already minted';
     else if(msg.includes('soldout')) out='Minted out';
     else if(msg.includes('mintclosed')||msg.includes('mint closed')) out='Not open yet';
+    else if(msg.startsWith('chain:')) out='Wallet didn\'t switch to Ink · add Ink Mainnet in your wallet, switch to it, reload';
     else if(msg.includes('turnstile')) out='Complete the check first';
     else if(msg.includes('already minted')) out='This wallet already minted';
     else if(msg.includes('expired')) out='Signature expired · try again';
