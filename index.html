@@ -1803,7 +1803,7 @@ function dsMountTurnstile(){
   const el = mobile ? $('ds-turnstile-m') : $('ds-turnstile');
   if(!el || !window.turnstile || !DS.turnstileSiteKey || DS.turnstileSiteKey.startsWith('PASTE')) return;
   if(dsWidget!==null){ try{ turnstile.remove(dsWidget); }catch(e){} }
-  dsWidget = turnstile.render(el, { sitekey: DS.turnstileSiteKey, theme:'dark', size:'compact' });
+  dsWidget = turnstile.render(el, { sitekey: DS.turnstileSiteKey, theme:'dark', appearance:'interaction-only' });
 }
 function dsSetStatus(t){ const c=$('ds-cap'); if(c) c.textContent=t; }
 const dsItem = id => `https://opensea.io/item/ink/${DS.contract}/${id}`;
