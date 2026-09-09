@@ -1799,12 +1799,20 @@ function dsMountTurnstile(){
 function dsSetStatus(t){ const c=$('ds-cap'); if(c) c.textContent=t; }
 const dsItem = id => `https://opensea.io/item/ink/${DS.contract}/${id}`;
 let dsRecentN = -1;
-function dsRenderRecent(n){
+async function dsRenderRecent(n, p){
   if(n===dsRecentN) return; dsRecentN=n;
   const g=$('ds-recent-grid'), c=$('ds-recent-n'); if(!g) return;
   if(c) c.textContent = n>=DS.supply ? 'Minted out' : `${n} / ${DS.supply}`;
   if(n<=0){ g.innerHTML='<div class="empty">Waiting for the first mint</div>'; return; }
-  const ids=[]; for(let i=n;i>0 && ids.length<6;i--) ids.push(i);
+  // real mint events (Transfer from 0x0), newest first — airdropped ids aren't sequential
+  let ids=[];
+  try{
+    const latest=await p.getBlockNumber();
+    const logs=await p.getLogs({address:DS.contract, fromBlock:Math.max(0,latest-20000), toBlock:latest,
+      topics:[ethers.utils.id('Transfer(address,address,uint256)'), ethers.constants.HashZero]});
+    ids=logs.map(l=>ethers.BigNumber.from(l.topics[3]).toNumber()).reverse().slice(0,6);
+  }catch(e){ console.warn('recent logs', e); }
+  if(!ids.length){ for(let i=n;i>0 && ids.length<6;i--) ids.push(i); }
   g.innerHTML = ids.map(id=>`<a href="${dsItem(id)}" target="_blank" rel="noopener"><img src="${dsImg(id)}" loading="lazy" alt="#${id}"><div class="cap">#${id}</div></a>`).join('');
 }
 let dsPoll=null;
@@ -1819,7 +1827,7 @@ async function refreshDS(){
     const [nBN,open]=await Promise.all([c.totalSupply(),c.mintOpen()]);
     const n=nBN.toNumber();
     const m=$('ds-minted'); if(m) m.textContent=`${n.toLocaleString()} / ${DS.supply.toLocaleString()}`;
-    dsRenderRecent(n);
+    dsRenderRecent(n, p);
     if(n>=DS.supply){ dsSetStatus('Minted out'); dsSetBtn('mintDS','Minted out',true); $('cl-ds-st').textContent='Sold Out · Ink'; }
     else if(!open){ dsSetStatus('Mint opens soon'); dsSetBtn('mintDS','Mint opens soon',true); $('cl-ds-st').textContent='Soon · Ink'; }
     else { dsSetStatus(`${n.toLocaleString()} / ${DS.supply.toLocaleString()} minted · free`); dsSetBtn('mintDS','Mint',false); $('cl-ds-st').textContent='Live · Ink'; }
