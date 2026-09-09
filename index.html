@@ -967,12 +967,12 @@ function renderDetail(key){
   $('det-sub').textContent = c.sub;
   $('det-body').textContent = c.body;
   $('det-dl').innerHTML = c.rows.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('');
-  $('det-acts').innerHTML = (key==='ds' ? '<div id="ds-turnstile" style="margin-bottom:6px"></div>' : '') + c.acts.map(([t,u,pri])=>{
+  $('det-acts').innerHTML = c.acts.map(([t,u,pri])=>{
     if(u.startsWith('js:')) return `<a class="${pri?'pri':''}" id="act-${u.slice(3)}" href="#" onclick="event.preventDefault(); ${u.slice(3)}()">${t}</a>`;
     if(u==='#opensea')  u = DS.opensea;
     if(u==='#contract') u = DS.contract ? `${DS.explorer}/address/${DS.contract}` : '#';
     return `<a class="${pri?'pri':''}" href="${u}" target="_blank" rel="noopener">${t}</a>`;
-  }).join('');
+  }).join('') + (key==='ds' ? '<div id="ds-turnstile" style="margin-top:8px"></div>' : '');
 }
 
 function openDS(){
