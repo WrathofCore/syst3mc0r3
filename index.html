@@ -1900,8 +1900,9 @@ async function dsTx(id,label,fn){
   if(!DS.contract) return;
   if(typeof window.ethereum==='undefined'){ dsSetStatus('No wallet detected'); return; }
   try{
-    dsSetBtn(id,'Confirm in wallet…',true);
+    dsSetBtn(id,'Connecting…',true); /* HUB_LABEL_FIX */
     const c=await dsSigner();
+    dsSetBtn(id,'Checking…',true);
     const tx=await fn(c);
     dsSetBtn(id,'Minting…',true); dsSetStatus('Pending · '+tx.hash.slice(0,10)+'…');
     await tx.wait();
@@ -1934,6 +1935,7 @@ function mintDS(){
     const j = await r.json().catch(()=>({}));
     if(!r.ok) throw new Error('server: '+(j.error||r.status));
     try{ turnstile.reset(dsWidget); }catch(e){}
+    dsSetBtn('mintDS','Confirm in wallet…',true);
     return c.mint(j.qty, j.deadline, j.sig);
   });
 }
