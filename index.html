@@ -662,7 +662,7 @@
   <div class="hd"><span>Collections</span><button onclick="closeList()">✕</button></div>
   <div class="row" data-key="ds" onclick="pickCollection('ds')">
     <div class="th"><img id="cl-ds" src="" alt="Datastreamers"></div>
-    <div><div class="nm">Datastreamers</div><div class="st" id="cl-ds-st">Live · Ink</div></div>
+    <div><div class="nm">Datastreamers</div><div class="st" id="cl-ds-st">Live · Ink</div><div class="st"><a href="https://datastreamers.syst3mc0r3.art/" target="_blank" rel="noopener" onclick="event.stopPropagation()">1,000 figures ↗</a></div></div>
   </div>
   <div class="row" data-key="pips" onclick="pickCollection('pips')">
     <div class="th"><img id="cl-pips" src="" alt=""></div>
@@ -754,6 +754,7 @@ const DS = {
   teaser:'',
   liveUrl:'https://img.syst3mc0r3.art/datastreamers/view.html?style=hex_c0re&style2=hex_mono&split=0.4&mseed=bxik0&geo=disk&incl=76&fov=5&rin=2&rout=10&beam=5&speed=0.25&glitch=1.02&sweep=1',
   opensea:'https://opensea.io/collection/datastreamers',
+  paper:'https://datastreamers.syst3mc0r3.art/',
   supply:1000, faceId:630
 };
 const dsImg = id => DS.imageBase.replace('{id}', id);
@@ -942,6 +943,7 @@ const COLLECTIONS = {
     rows:[['Supply','1,000'],['Minted','<span id="ds-minted">—</span>'],['Mint','Free · 1 per wallet'],['Pips holders','Free · 2 per wallet']],
     acts:[
       ['Mint','js:mintDS',true],
+      ['Read the paper','#paper',false],
       ['View on OpenSea','#opensea',false],
       ['Contract','#contract',false]
     ]
@@ -972,6 +974,7 @@ function renderDetail(key){
   $('det-acts').innerHTML = c.acts.map(([t,u,pri])=>{
     if(u.startsWith('js:')) return `<a class="${pri?'pri':''}" id="act-${u.slice(3)}" href="#" onclick="event.preventDefault(); ${u.slice(3)}()">${t}</a>`;
     if(u==='#opensea')  u = DS.opensea;
+    if(u==='#paper')    u = DS.paper;
     if(u==='#contract') u = DS.contract ? `${DS.explorer}/address/${DS.contract}` : '#';
     return `<a class="${pri?'pri':''}" href="${u}" target="_blank" rel="noopener">${t}</a>`;
   }).join('') + (key==='ds' ? '<div id="ds-turnstile-m" style="margin-top:8px"></div>' : '');
@@ -1824,7 +1827,7 @@ async function dsRenderRecent(n, p){
     }
   }catch(e){ console.warn('recent logs', e); }
   if(!ids.length){ for(let i=n;i>0 && ids.length<6;i--) ids.push(i); }
-  g.innerHTML = ids.map(id=>`<a href="${dsItem(id)}" target="_blank" rel="noopener"><img src="${dsImg(id)}" loading="lazy" alt="#${id}"><div class="cap">#${id}</div></a>`).join('');
+  g.innerHTML = ids.map(id=>`<a href="${DS.paper}#/s/${id}" target="_blank" rel="noopener" title="Fig. ${id} in the paper"><img src="${dsImg(id)}" loading="lazy" alt="#${id}"><div class="cap">#${id}</div></a>`).join('');
 }
 let dsPoll=null;
 function dsStartPoll(){ dsStopPoll(); dsPoll=setInterval(()=>{ if($('ds-stage').classList.contains('live')) refreshDS(); else dsStopPoll(); }, 20000); }
