@@ -331,6 +331,9 @@
   #ds-stage .box{ border-color:var(--ds-edge);
     box-shadow:0 0 0 1px rgba(92,30,168,.7), 0 30px 80px rgba(0,0,0,.95), 0 0 50px rgba(180,76,255,.22); }
   .detail.ds .sub{ color:var(--ds); }
+  .detail.ds p{ margin-bottom:16px; }
+  .detail.ds dl{ margin-bottom:14px; }
+  .detail.ds .acts{ margin-top:12px; }
   .detail.ds .rule{ background:var(--ds); }
   .detail.ds h1{ color:#ead9ff; }
   .detail.ds dd{ color:#d7b9ff; }
@@ -931,8 +934,8 @@ const COLLECTIONS = {
   ds: {
     title:['Data','streamers'],
     sub:'Free mint · Ink Mainnet',
-    body:'Something in the simulation failed. The gravity is still correct. Everything else is falling in. 1,000 corrupted frames, real Schwarzschild geodesics, rendered live.',
-    rows:[['Supply','1,000'],['Minted','<span id="ds-minted">—</span>'],['Mint','Free · 1 per wallet'],['Pips holders','2 per wallet'],['Chain','Ink Mainnet']],
+    body:'Something in the simulation failed. The gravity is still correct. Everything else is falling in.',
+    rows:[['Supply','1,000'],['Minted','<span id="ds-minted">—</span>'],['Mint','Free · 1 per wallet'],['Pips holders','2 per wallet']],
     acts:[
       ['Mint','js:mintDS',true],
       ['View on OpenSea','#opensea',false],
