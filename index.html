@@ -278,6 +278,10 @@
   .home{position:fixed; inset:0; z-index:60; transition:opacity .45s, transform .55s;}
   .home.gone{opacity:0; transform:scale(.92); pointer-events:none;}
   .collage{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);}
+  @media (max-width:760px){
+    .collage{ top:57%; transform:translate(-50%,-50%) scale(.6); }
+  }
+  @media (max-width:400px){ .collage{ transform:translate(-50%,-50%) scale(.52); } }
 
   .obj{position:absolute; transition:transform .3s cubic-bezier(.2,.8,.3,1);}
   .obj.main{cursor:pointer;}
@@ -454,6 +458,11 @@
     filter:saturate(.92) contrast(1.04) brightness(.94);
     opacity:.94;
   }
+  /* DATASTREAMERS: the live renderer sits in the same frame as the teaser */
+  .soon-stage .box iframe{
+    position:absolute; inset:0; width:100%; height:100%; border:0; border-radius:2px;
+    background:#000; display:block;
+  }
   @keyframes soon-float{0%,100%{transform:translateY(0) rotate(-1.4deg);}50%{transform:translateY(-12px) rotate(1.2deg);}}
   .soon-stage .box::after{
     content:""; position:absolute; inset:0; opacity:.5; pointer-events:none;
@@ -564,6 +573,11 @@
   </div>
 </div>
 
+<div class="soon-stage" id="ds-stage">
+  <div class="box" id="ds-box"></div>
+  <div class="cap" id="ds-cap" style="position:absolute; bottom:calc(50% - min(150px,21vmin) - 30px); left:0; right:0; text-align:center; font-family:var(--mono); font-size:9px; letter-spacing:.3em; color:var(--dim); text-transform:uppercase;"></div>
+</div>
+
 <div class="wall-stage" id="wall-stage">
   <div class="viewport" id="viewport"><div class="wall" id="wall"></div></div>
 </div>
@@ -580,11 +594,15 @@
 
 <div class="colllist" id="colllist">
   <div class="hd"><span>Collections</span><button onclick="closeList()">✕</button></div>
-  <div class="row" onclick="pickCollection('pips')">
+  <div class="row" data-key="ds" onclick="pickCollection('ds')">
+    <div class="th"><img id="cl-ds" src="" alt="Datastreamers"></div>
+    <div><div class="nm">Datastreamers</div><div class="st" id="cl-ds-st">Live · Ink</div></div>
+  </div>
+  <div class="row" data-key="pips" onclick="pickCollection('pips')">
     <div class="th"><img id="cl-pips" src="" alt=""></div>
     <div><div class="nm">Corrupted Pips</div><div class="st">Sold Out · Ink</div></div>
   </div>
-  <div class="row" onclick="pickCollection('soon')">
+  <div class="row" data-key="soon" onclick="pickCollection('soon')">
     <div class="th"><img src="pixelpips_teaser.gif" alt="Pixel Pips"></div>
     <div><div class="nm">Pixel Pips</div><div class="st">Pre-launch · Robinhood</div></div>
   </div>
@@ -658,6 +676,20 @@ const V3 = {
   faceId: 44
 };
 const img = id => V3.imageBase.replace('{id}', id);
+
+/* ===== DATASTREAMERS (free mint · Ink) ===== */
+const DS = {
+  contract:'0xdc44212aE96C9C7eD19b10c66259c4f9A402b8e9',
+  pips:V3.contract,
+  chainIdHex:V3.chainIdHex, chainName:V3.chainName, rpcUrl:V3.rpcUrl, explorer:V3.explorer,
+  imageBase:'https://img.syst3mc0r3.art/datastreamers/img/{id}.webp',
+  teaser:'',
+  liveUrl:'https://img.syst3mc0r3.art/datastreamers/view.html?style=hex_c0re&style2=hex_mono&split=0.4&mseed=bxik0&geo=disk&incl=76&fov=5&rin=2&rout=10&beam=5&speed=0.25&glitch=1.02&sweep=1',
+  opensea:'https://opensea.io/collection/datastreamers',
+  supply:1000, faceId:630
+};
+const dsImg = id => DS.imageBase.replace('{id}', id);
+const dsFace = () => DS.teaser || dsImg(DS.faceId);
 const $ = id => document.getElementById(id);
 
 /* ===== industrial pipework ===== */
@@ -708,6 +740,14 @@ soon.innerHTML = `<div class="face"><img class="teaser" src="pixelpips_teaser.gi
   <div class="cs-lbl">Pre-launch</div>`;
 soon.onclick = openSoon;
 collage.appendChild(soon);
+
+const dsTile = document.createElement('div');
+dsTile.className = 'obj soon ds';
+dsTile.style.cssText = 'left:-262px; top:118px; width:156px; height:156px; transform:rotate(-2.4deg); z-index:30;';
+dsTile.innerHTML = `<div class="face"><img class="teaser" src="${dsFace()}" alt="Datastreamers"></div>
+  <div class="cs-lbl">Live</div>`;
+dsTile.onclick = openDS;
+collage.appendChild(dsTile);
 
 /* ===== WALL ===== */
 const WORKS = [
@@ -823,6 +863,17 @@ const COLLECTIONS = {
       ['Contract','https://explorer.inkonchain.com/address/0x1c882abe733534910bb334d25ce0f8ce46f0e164',false]
     ]
   },
+  ds: {
+    title:['Data','streamers'],
+    sub:'Free mint · Ink Mainnet',
+    body:'Something in the simulation failed. The gravity is still correct. Everything else is falling in. 1,000 corrupted frames, real Schwarzschild geodesics, rendered live.',
+    rows:[['Supply','1,000'],['Minted','<span id="ds-minted">—</span>'],['Mint','Free · 1 per wallet'],['Pips holders','2 per wallet'],['Chain','Ink Mainnet']],
+    acts:[
+      ['Mint','js:mintDS',true],
+      ['View on OpenSea','#opensea',false],
+      ['Contract','#contract',false]
+    ]
+  },
   soon: {
     title:['Pixel','Pips'],
     sub:'Pre-launch. Site live.',
@@ -846,8 +897,32 @@ function renderDetail(key){
   $('det-sub').textContent = c.sub;
   $('det-body').textContent = c.body;
   $('det-dl').innerHTML = c.rows.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('');
-  $('det-acts').innerHTML = c.acts.map(([t,u,pri])=>
-    `<a class="${pri?'pri':''}" href="${u}" target="_blank" rel="noopener">${t}</a>`).join('');
+  $('det-acts').innerHTML = c.acts.map(([t,u,pri])=>{
+    if(u.startsWith('js:')) return `<a class="${pri?'pri':''}" id="act-${u.slice(3)}" href="#" onclick="event.preventDefault(); ${u.slice(3)}()">${t}</a>`;
+    if(u==='#opensea')  u = DS.opensea;
+    if(u==='#contract') u = DS.contract ? `${DS.explorer}/address/${DS.contract}` : '#';
+    return `<a class="${pri?'pri':''}" href="${u}" target="_blank" rel="noopener">${t}</a>`;
+  }).join('');
+}
+
+function openDS(){
+  const reentry = onWall;
+  onWall = true;
+  holdGlitch(700);
+  renderDetail('ds');
+  markActive('ds');
+  const box=$('ds-box');
+  box.innerHTML = DS.liveUrl
+    ? `<iframe src="${DS.liveUrl}" allow="autoplay" loading="lazy"></iframe>`
+    : `<img class="teaser" src="${dsFace()}" alt="Datastreamers">`;
+  $('home').classList.add('gone');
+  $('wall-stage').classList.remove('live');
+  $('soon-stage').classList.remove('live');
+  $('ds-stage').classList.add('live');
+  $('detail').classList.add('live');
+  refreshDS();
+  fx(()=>{ SFX.open(); AMBIENT.duck(1.1); });
+  setTimeout(()=>fx(()=>{ fireSweep(); if(!reentry) fireTear(); stampBlocks(5); }), 700);
 }
 
 function openSoon(){
@@ -856,6 +931,7 @@ function openSoon(){
   holdGlitch(700);
   renderDetail('soon');
   $('home').classList.add('gone');
+  $('ds-stage').classList.remove('live');
   $('wall-stage').classList.remove('live');
   $('soon-stage').classList.add('live');
   $('detail').classList.add('live');
@@ -873,6 +949,7 @@ function openWall(){
   holdGlitch(820);
   renderDetail('pips');
   $('soon-stage').classList.remove('live');
+  $('ds-stage').classList.remove('live');
   $('home').classList.add('gone');
   $('wall-stage').classList.add('live');
   $('detail').classList.add('live');
@@ -889,6 +966,7 @@ function goHome(){
   onWall = false;
   holdGlitch(800);
   $('soon-stage').classList.remove('live');
+  $('ds-stage').classList.remove('live');
   $('wall-stage').classList.remove('live');
   $('detail').classList.remove('live');
   $('home').classList.remove('gone');
@@ -1037,7 +1115,7 @@ window.addEventListener('error', e=>{
 /* hard reset: if state ever desyncs, this always returns to a known-good home */
 function forceHome(){
   onWall=false;
-  ['wall-stage','soon-stage','detail','colllist'].forEach(id=>$(id).classList.remove('live'));
+  ['wall-stage','soon-stage','ds-stage','detail','colllist'].forEach(id=>$(id).classList.remove('live'));
   document.body.classList.remove('list-open');
   ['piece','about','sheet'].forEach(id=>$(id).classList.remove('open'));
   recorruptBinary();
@@ -1584,6 +1662,7 @@ document.addEventListener('mouseout', e=>{
 
 /* ===== collections list ===== */
 $('cl-pips').src = img(V3.faceId);
+$('cl-ds').src = dsFace();
 function syncListSpacing(){
   const open = $('colllist').classList.contains('live');
   document.body.classList.toggle('list-open', open);
@@ -1598,11 +1677,11 @@ function toggleList(){
 function closeList(){ $('colllist').classList.remove('live'); syncListSpacing(); }
 function pickCollection(key){
   markActive(key);
-  key === 'pips' ? openWall() : openSoon();
+  key === 'pips' ? openWall() : key === 'ds' ? openDS() : openSoon();
 }
 function markActive(key){
   const rows=document.querySelectorAll('.colllist .row');
-  rows.forEach((r,i)=>r.classList.toggle('on', (key==='pips'&&i===0)||(key==='soon'&&i===1)));
+  rows.forEach(r=>r.classList.toggle('on', r.dataset.key===key));
 }
 
 let sndOn = true;
@@ -1629,6 +1708,76 @@ function toggleAmbient(){
   b.classList.toggle('on', ambOn);
 }
 
+/* ===== DATASTREAMERS mint ===== */
+const DS_ABI=[
+  "function mint()",
+  "function totalSupply() view returns (uint256)",
+  "function balanceOf(address owner) view returns (uint256)",
+  "function mintOpen() view returns (bool)",
+  "function minted(address) view returns (bool)",
+  "function qtyFor(address) view returns (uint256)"
+];
+function dsSetStatus(t){ const c=$('ds-cap'); if(c) c.textContent=t; }
+function dsSetBtn(id,t,dis){ const b=$('act-'+id); if(!b) return; b.textContent=t; b.style.pointerEvents=dis?'none':''; b.style.opacity=dis?'.45':''; }
+async function refreshDS(){
+  if(!DS.contract){ dsSetStatus('Mint opens soon'); dsSetBtn('mintDS','Mint opens soon',true); $('cl-ds-st').textContent='Soon · Ink'; return; }
+  try{
+    const p=new ethers.providers.JsonRpcProvider(DS.rpcUrl);
+    const c=new ethers.Contract(DS.contract,DS_ABI,p);
+    const [nBN,open]=await Promise.all([c.totalSupply(),c.mintOpen()]);
+    const n=nBN.toNumber();
+    const m=$('ds-minted'); if(m) m.textContent=`${n.toLocaleString()} / ${DS.supply.toLocaleString()}`;
+    if(n>=DS.supply){ dsSetStatus('Minted out'); dsSetBtn('mintDS','Minted out',true); $('cl-ds-st').textContent='Sold Out · Ink'; }
+    else if(!open){ dsSetStatus('Mint opens soon'); dsSetBtn('mintDS','Mint opens soon',true); $('cl-ds-st').textContent='Soon · Ink'; }
+    else { dsSetStatus(`${n.toLocaleString()} / ${DS.supply.toLocaleString()} minted · free`); dsSetBtn('mintDS','Mint',false); $('cl-ds-st').textContent='Live · Ink'; }
+    // label the button for this wallet: already minted / 2 for pips holders / 1
+    if(open && n<DS.supply && window.ethereum){
+      try{
+        const accs=await window.ethereum.request({method:'eth_accounts'});
+        if(accs && accs[0]){
+          const [done,q]=await Promise.all([c.minted(accs[0]),c.qtyFor(accs[0])]);
+          if(done) dsSetBtn('mintDS','Minted',true);
+          else if(q.toNumber()===2) dsSetBtn('mintDS','Mint 2 · Pips holder',false);
+        }
+      }catch(e){}
+    }
+  }catch(e){ console.warn('ds supply', e); dsSetStatus('Free mint · Ink'); }
+}
+async function dsSigner(){
+  const p=new ethers.providers.Web3Provider(window.ethereum);
+  await p.send('eth_requestAccounts',[]);
+  try{ await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:DS.chainIdHex}]}); }
+  catch(err){ if(err.code===4902){ await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:DS.chainIdHex,chainName:DS.chainName,rpcUrls:[DS.rpcUrl],blockExplorerUrls:[DS.explorer],nativeCurrency:{name:'Ether',symbol:'ETH',decimals:18}}]}); } else throw err; }
+  return new ethers.Contract(DS.contract,DS_ABI,p.getSigner());
+}
+async function dsTx(id,label,fn){
+  if(!DS.contract) return;
+  if(typeof window.ethereum==='undefined'){ dsSetStatus('No wallet detected'); return; }
+  try{
+    dsSetBtn(id,'Confirm in wallet…',true);
+    const c=await dsSigner();
+    const tx=await fn(c);
+    dsSetBtn(id,'Minting…',true); dsSetStatus('Pending · '+tx.hash.slice(0,10)+'…');
+    await tx.wait();
+    fx(()=>{ fireSweep(); stampBlocks(6); SFX.open(); });
+    await refreshDS();
+    dsSetStatus('Minted · it is yours');
+    dsSetBtn(id,label,false);
+  }catch(e){
+    console.error(e);
+    const msg=(e && (e.reason||e.message||'')).toLowerCase();
+    let out='Mint failed';
+    if(msg.includes('denied')||msg.includes('rejected')) out='Rejected';
+    else if(msg.includes('alreadyminted')) out='This wallet already minted';
+    else if(msg.includes('soldout')) out='Minted out';
+    else if(msg.includes('mintclosed')) out='Not open yet';
+    dsSetStatus(out);
+    dsSetBtn(id,label,false);
+  }
+}
+function mintDS(){ return dsTx('mintDS','Mint',c=>c.mint()); }
+if(window.ethereum){ window.ethereum.on && window.ethereum.on('accountsChanged',()=>refreshDS()); }
+
 /* ===== wallet ===== */
 const ABI=["function balanceOf(address owner) view returns (uint256)"];
 async function connectWallet(){
@@ -1642,11 +1791,15 @@ async function connectWallet(){
     try{ await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:V3.chainIdHex}]}); }
     catch(err){ if(err.code===4902){ await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:V3.chainIdHex,chainName:V3.chainName,rpcUrls:[V3.rpcUrl],blockExplorerUrls:[V3.explorer],nativeCurrency:{name:'Ether',symbol:'ETH',decimals:18}}]}); } }
     const bal=(await new ethers.Contract(V3.contract,ABI,p).balanceOf(addr)).toNumber();
+    let dsBal=0;
+    if(DS.contract){ try{ dsBal=(await new ethers.Contract(DS.contract,ABI,p).balanceOf(addr)).toNumber(); }catch(e){} }
     const sub=$('wal-sub');
-    if(bal>0){
-      // only name the collection and chain once they actually hold something from it
-      sub.textContent='Corrupted.Pips V3 · Ink Mainnet';
-      st.innerHTML=`<span class="n">${bal}</span> work${bal===1?'':'s'} held by ${addr.slice(0,6)}…${addr.slice(-4)}`;
+    if(bal>0 || dsBal>0){
+      const parts=[];
+      if(bal>0)   parts.push(`<span class="n">${bal}</span> Corrupted.Pips`);
+      if(dsBal>0) parts.push(`<span class="n">${dsBal}</span> Datastreamer${dsBal===1?'':'s'}`);
+      sub.textContent='Ink Mainnet';
+      st.innerHTML=parts.join(' · ')+` held by ${addr.slice(0,6)}…${addr.slice(-4)}`;
     } else {
       sub.textContent='';
       st.innerHTML=`Nothing found in ${addr.slice(0,6)}…${addr.slice(-4)}.`;
