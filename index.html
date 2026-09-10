@@ -596,6 +596,8 @@
 
   /* HUB_MOBILE_FIX: phone layout. header row, drawer under header, DS stage below the minted strip */
   @media (max-width:760px){
+    #ds-turnstile-m{ scroll-margin:20px 0; }
+    .detail{ padding-bottom:34px; }
     .vol{display:none;}
     .meta{max-width:calc(100vw - 150px);}
     .nav{flex-direction:row; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:6px 14px;}
@@ -1821,6 +1823,19 @@ function dsMountTurnstile(){
   if(!el || !window.turnstile || !DS.turnstileSiteKey || DS.turnstileSiteKey.startsWith('PASTE')) return;
   if(dsWidget!==null){ try{ turnstile.remove(dsWidget); }catch(e){} }
   dsWidget = turnstile.render(el, { sitekey: DS.turnstileSiteKey, theme:'dark', appearance:'interaction-only' });
+  /* HUB_TURNSTILE_VIS: interaction-only means the checkbox appears out of nowhere. In the
+     mobile sheet it can land below the fold, so scroll it into view the moment it has height. */
+  if(!el.__dsWatch){
+    el.__dsWatch = 1;
+    try{
+      new ResizeObserver(()=>{
+        if(el.offsetHeight > 10){
+          try{ el.scrollIntoView({block:'center', behavior:'smooth'}); }catch(e){ el.scrollIntoView(); }
+          dsSetStatus('Check the box to continue');
+        }
+      }).observe(el);
+    }catch(e){}
+  }
 }
 function dsSetStatus(t){ const c=$('ds-cap'); if(c) c.textContent=t; }
 const dsItem = id => `https://opensea.io/item/ink/${DS.contract}/${id}`;
