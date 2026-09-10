@@ -1949,12 +1949,18 @@ async function connectWallet(){
   const btn=$('wallet-btn'), st=$('wal-status');
   if(typeof window.ethereum==='undefined'){ $('wal-sub').textContent=''; st.textContent='No wallet detected.'; openSheet(); return; }
   btn.textContent='Connecting…';
-  try{
-    const p=new ethers.providers.Web3Provider(window.ethereum);
-    const [addr]=await p.send('eth_requestAccounts',[]);
+  try{ /* HUB_CONNECT_FIX: network prompt first off the tap, provider built after the switch */
+    const eth=window.ethereum, want=V3.chainIdHex.toLowerCase();
+    if(String(eth.chainId||'').toLowerCase()!==want){
+      try{ await eth.request({method:'wallet_addEthereumChain',params:[{chainId:V3.chainIdHex,chainName:V3.chainName,rpcUrls:[V3.rpcUrl],blockExplorerUrls:[V3.explorer],nativeCurrency:{name:'Ether',symbol:'ETH',decimals:18}}]}); }
+      catch(err){ if(err && (err.code===4001 || /denied|rejected/i.test(err.message||''))) throw err;
+        try{ await eth.request({method:'wallet_switchEthereumChain',params:[{chainId:V3.chainIdHex}]}); }catch(e2){} }
+    }
+    const p=new ethers.providers.Web3Provider(eth,'any');
+    let accs=await eth.request({method:'eth_accounts'}).catch(()=>[]);
+    if(!accs||!accs.length) accs=await p.send('eth_requestAccounts',[]);
+    const addr=accs[0];
     btn.textContent=addr.slice(0,6)+'…'+addr.slice(-4);
-    try{ await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:V3.chainIdHex}]}); }
-    catch(err){ if(err.code===4902){ await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:V3.chainIdHex,chainName:V3.chainName,rpcUrls:[V3.rpcUrl],blockExplorerUrls:[V3.explorer],nativeCurrency:{name:'Ether',symbol:'ETH',decimals:18}}]}); } }
     const bal=(await new ethers.Contract(V3.contract,ABI,p).balanceOf(addr)).toNumber();
     let dsBal=0;
     if(DS.contract){ try{ dsBal=(await new ethers.Contract(DS.contract,ABI,p).balanceOf(addr)).toNumber(); }catch(e){} }
