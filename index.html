@@ -403,6 +403,17 @@
     box-shadow:0 26px 60px rgba(0,0,0,.7),
                0 0 50px rgba(142,18,48,.6), 0 0 90px rgba(0,0,0,.6); z-index:70 !important;}
   .work:hover .cap{opacity:1; transform:translateY(0);}
+  /* HUB_DS_WALL: same wall, DATASTREAMERS palette */
+  .work iframe{width:100%; height:100%; border:0; display:block;}
+  #wall.ds .work{border-color:var(--ds-edge);
+    box-shadow:0 0 0 1px rgba(92,30,168,.55), 0 16px 44px rgba(0,0,0,.92);}
+  #wall.ds .work .cap{background:var(--ds-edge);}
+  #wall.ds.open .work:hover{border-color:var(--ds);
+    box-shadow:0 26px 60px rgba(0,0,0,.7),
+               0 0 50px rgba(180,76,255,.55), 0 0 90px rgba(0,0,0,.6);}
+  .piece.ds .piece-info .pcol{color:var(--ds);}
+  .piece.ds .piece-info .acts a.pri{background:var(--ds); border-color:var(--ds); color:#000;}
+  .piece.ds .piece-info .acts a:hover{background:var(--ds-edge); border-color:var(--ds-edge); color:var(--bone);}
 
   /* ============ floating detail ============ */
   .detail{
@@ -681,7 +692,7 @@
   <div class="hd"><span>Collections</span><button onclick="closeList()">✕</button></div>
   <div class="row" data-key="ds" onclick="pickCollection('ds')">
     <div class="th"><img id="cl-ds" src="" alt="Datastreamers"></div>
-    <div><div class="nm">Datastreamers</div><div class="st" id="cl-ds-st">Live · Ink</div><div class="st"><a href="https://datastreamers.syst3mc0r3.art/" target="_blank" rel="noopener" onclick="event.stopPropagation()">1,000 figures ↗</a></div></div>
+    <div><div class="nm">Datastreamers</div><div class="st" id="cl-ds-st">Sold Out · Ink</div><div class="st"><a href="https://datastreamers.syst3mc0r3.art/" target="_blank" rel="noopener" onclick="event.stopPropagation()">1,000 figures ↗</a></div></div>
   </div>
   <div class="row" data-key="pips" onclick="pickCollection('pips')">
     <div class="th"><img id="cl-pips" src="" alt=""></div>
@@ -712,17 +723,9 @@
     </div>
     <div class="piece-info">
       <div class="pid" id="pc-id">#-</div>
-      <div class="pcol">Corrupted.Pips V3</div>
-      <dl>
-        <dt>Chain</dt><dd>Ink Mainnet</dd>
-        <dt>Standard</dt><dd>ERC-721</dd>
-        <dt>Supply</dt><dd>3,210</dd>
-        <dt>Mint</dt><dd>Free</dd>
-      </dl>
-      <div class="acts">
-        <a class="pri" id="pc-os" href="#" target="_blank" rel="noopener">Buy on OpenSea</a>
-        <a id="pc-scan" href="#" target="_blank" rel="noopener">View on Explorer</a>
-      </div>
+      <div class="pcol" id="pc-col">Corrupted.Pips V3</div>
+      <dl id="pc-dl"></dl>
+      <div class="acts" id="pc-acts"></div>
     </div>
   </div>
 </div>
@@ -821,7 +824,7 @@ main.style.cssText = 'left:-134px; top:-150px; width:268px; height:268px; transf
 main.innerHTML = `<div class="face">${DS.liveUrl
   ? `<iframe src="${DS.liveUrl}" loading="lazy" title="Datastreamers live"></iframe>`
   : `<img src="${dsFace()}" alt="Datastreamers">`}</div>
-  <div class="cs-lbl">Live · Free mint</div>`;
+  <div class="cs-lbl">Sold out</div>`;
 main.onclick = openDS;
 collage.appendChild(main);
 
@@ -858,18 +861,53 @@ const WALL_W=790, WALL_H=660, STACK=250, TOP_PAD=96, BOT_PAD=40;
 const wall=$('wall'), viewport=$('viewport');
 wall.style.width=WALL_W+'px'; wall.style.height=WALL_H+'px';
 
-const nodes = WORKS.map(([x,y,s,id,rot], i) => {
-  const d=document.createElement('div'); d.className='work';
-  d.innerHTML=`<img src="${img(id)}" loading="lazy" alt="#${id}"><div class="cap">#${id}</div>`;
-  d.onclick=()=>openPiece(i);
-  wall.appendChild(d); return d;
-});
+/* HUB_DS_WALL: one wall, two collections. Geometry is shared, the id set swaps. */
+const WALLSETS = {
+  pips:{
+    ids: WORKS.map(w=>w[3]),
+    img: img, live:null, col:'Corrupted.Pips V3',
+    rows:[['Chain','Ink Mainnet'],['Standard','ERC-721'],['Supply','3,210'],['Mint','Free']],
+    acts: id=>[['Buy on OpenSea',`https://opensea.io/assets/ink/${V3.contract}/${id}`,true],
+               ['View on Explorer',`${V3.explorer}/token/${V3.contract}/instance/${id}`,false]]
+  },
+  ds:{
+    /* slot 0 is the biggest card and runs live. The rest are stills, picked for
+       colour spread and for legibility at 100-170px. */
+    ids:[630,934,39,833,133,29,311,973,114,67,157,737,167,286,987,666,326,860,6],
+    img: dsImg, live: DS.liveUrl, col:'Datastreamers',
+    rows:[['Chain','Ink Mainnet'],['Standard','ERC-721'],['Supply','1,000'],['Mint','Free']],
+    acts: id=>[['Buy on OpenSea',`https://opensea.io/item/ink/${DS.contract}/${id}`,true],
+               ['Read the paper',`${DS.paper}#/s/${id}`,false],
+               ['View on Explorer',`${DS.explorer}/token/${DS.contract}/instance/${id}`,false]]
+  }
+};
+let nodes = [], curWall = null;
+function buildWall(key){
+  if(curWall===key) return;
+  curWall = key;
+  const set = WALLSETS[key];
+  wall.innerHTML = '';
+  wall.classList.toggle('ds', key==='ds');
+  nodes = WORKS.map(([x,y,s,,rot], i) => {
+    const id = set.ids[i];
+    const face = (i===0 && set.live)
+      ? `<iframe src="${set.live}" loading="lazy" title="Live"></iframe>`
+      : `<img src="${set.img(id)}" loading="lazy" alt="#${id}">`;
+    const d=document.createElement('div'); d.className='work';
+    d.innerHTML = `${face}<div class="cap">#${id}</div>`;
+    d.onclick = ()=>openPiece(i);
+    d.style.left=x+'px'; d.style.top=y+'px';
+    d.style.width=s+'px'; d.style.height=s+'px';
+    wall.appendChild(d); return d;
+  });
+  layoutStack();
+}
 /* Geometry is fixed at the WALL position for every card and never changes.
    The stacked state is a pure transform, so expanding costs no layout. */
 const STACK_TF = [];   // precomputed transform strings for the collapsed pile
 (function precompute(){
   const cx=(WALL_W-STACK)/2, cy=(WALL_H-STACK)/2;
-  nodes.forEach((d,i)=>{
+  WORKS.forEach((w,i)=>{
     const [x,y,s]=WORKS[i];
     const off=i===0?0:Math.min(22,4+i*1.1);
     const ox=i===0?0:Math.cos(i*2.399)*off, oy=i===0?0:Math.sin(i*2.399)*off;
@@ -885,25 +923,19 @@ const STACK_TF = [];   // precomputed transform strings for the collapsed pile
   });
 })();
 
-/* geometry written once at startup */
-(function setGeometry(){
-  nodes.forEach((d,i)=>{
-    const [x,y,s]=WORKS[i];
-    d.style.left=x+'px'; d.style.top=y+'px';
-    d.style.width=s+'px'; d.style.height=s+'px';
-  });
-})();
+/* geometry is written by buildWall, once per collection */
 
 function layoutStack(){
+  wall.classList.remove('open');
   nodes.forEach((d,i)=>{ d.style.transform = STACK_TF[i]; d.style.zIndex = 100-i; });
 }
 function layoutWall(){
+  wall.classList.add('open');
   nodes.forEach((d,i)=>{
     d.style.transform = `translate3d(0,0,0) rotate(${WORKS[i][4]}deg) scale(1)`;
     d.style.zIndex = 10+(i%9);
   });
 }
-layoutStack();
 
 /* ===== pan ===== */
 let panX=0, panY=0, down=false, sx, sy, moved=false, onWall=false;
@@ -957,13 +989,13 @@ const COLLECTIONS = {
   },
   ds: {
     title:['Data','streamers'],
-    sub:'Free mint · Ink Mainnet',
-    body:'Something in the simulation failed. The gravity is still correct. Everything else is falling in.',
-    rows:[['Supply','1,000'],['Minted','<span id="ds-minted">—</span>'],['Mint','Free · 1 per wallet'],['Pips holders','Free · 2 per wallet']],
+    sub:'Sold Out · Ink Mainnet',
+    body:'1,000 black holes, minted out in a night. Something in the simulation failed. The gravity is still correct. Everything else is falling in.',
+    rows:[['Supply','1,000'],['Mint','Free'],['Standard','ERC-721'],
+          ['Contract','<span class="code">0xd0bd…2C386</span>']],
     acts:[
-      ['Mint','js:mintDS',true],
+      ['Buy on OpenSea','#opensea',true],
       ['Read the paper','#paper',false],
-      ['View on OpenSea','#opensea',false],
       ['Contract','#contract',false]
     ]
   },
@@ -996,28 +1028,27 @@ function renderDetail(key){
     if(u==='#paper')    u = DS.paper;
     if(u==='#contract') u = DS.contract ? `${DS.explorer}/address/${DS.contract}` : '#';
     return `<a class="${pri?'pri':''}" href="${u}" target="_blank" rel="noopener">${t}</a>`;
-  }).join('') + (key==='ds' ? '<div id="ds-turnstile-m" style="margin-top:8px"></div>' : '');
+  }).join('');
 }
 
-function openDS(){
+function openDS(){ /* HUB_DS_WALL: minted out, so it gets the wall */
   const reentry = onWall;
   onWall = true;
-  holdGlitch(700);
+  holdGlitch(820);
   renderDetail('ds');
   markActive('ds');
   $('detail').classList.add('ds'); $('detail').classList.remove('pp');
-  const box=$('ds-box');
-  box.innerHTML = DS.liveUrl
-    ? `<iframe src="${DS.liveUrl}" allow="autoplay" loading="lazy"></iframe>`
-    : `<img class="teaser" src="${dsFace()}" alt="Datastreamers">`;
   $('home').classList.add('gone');
-  $('wall-stage').classList.remove('live');
   $('soon-stage').classList.remove('live');
-  $('ds-stage').classList.add('live');
+  $('ds-stage').classList.remove('live');
+  buildWall('ds');
+  $('wall-stage').classList.add('live');
   $('detail').classList.add('live');
-  refreshDS(); dsStartPoll(); setTimeout(dsMountTurnstile, 50);
+  render();
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{ layoutWall(); }));
+  setTimeout(render, 800);
   fx(()=>{ SFX.open(); AMBIENT.duck(1.1); });
-  setTimeout(()=>fx(()=>{ fireSweep(); if(!reentry) fireTear(); stampBlocks(5); }), 700);
+  setTimeout(()=>fx(()=>{ fireSweep(); if(!reentry) fireTear(); stampBlocks(6); }), 780);
 }
 
 function openSoon(){
@@ -1048,6 +1079,7 @@ function openWall(){
   $('soon-stage').classList.remove('live');
   $('ds-stage').classList.remove('live');
   $('home').classList.add('gone');
+  buildWall('pips');
   $('wall-stage').classList.add('live');
   $('detail').classList.add('live');
   if(!reentry) layoutStack();
@@ -1150,15 +1182,20 @@ addEventListener('load',()=>setTimeout(()=>{ fireSweep(); stampBlocks(8); },320)
 
 /* ===== piece ===== */
 let cur=0;
-function openPiece(i){
+function openPiece(i){ /* HUB_DS_WALL: reads whichever collection the wall is showing */
   if(moved) return;
+  const set = WALLSETS[curWall] || WALLSETS.pips;
   cur=((i%WORKS.length)+WORKS.length)%WORKS.length;
-  const id=WORKS[cur][3];
-  $('pc-img').src = img(id);
+  const id=set.ids[cur];
+  $('pc-img').src = set.img(id);
   $('pc-id').textContent='#'+id;
-  $('pc-os').href=`https://opensea.io/assets/ink/${V3.contract}/${id}`;
-  $('pc-scan').href=`${V3.explorer}/token/${V3.contract}/instance/${id}`;
-  const p=$('piece'); p.classList.remove('open'); void p.offsetWidth; p.classList.add('open');
+  $('pc-col').textContent=set.col;
+  $('pc-dl').innerHTML=set.rows.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('');
+  $('pc-acts').innerHTML=set.acts(id).map(([t,u,pri])=>
+    `<a class="${pri?'pri':''}" href="${u}" target="_blank" rel="noopener">${t}</a>`).join('');
+  const p=$('piece');
+  p.classList.toggle('ds', curWall==='ds');
+  p.classList.remove('open'); void p.offsetWidth; p.classList.add('open');
   fx(()=>stampBlocks(4));
 }
 function stepPiece(d){ event.stopPropagation(); moved=false; openPiece(cur+d); }
